@@ -2,7 +2,7 @@ import { Raydium, TxVersion, parseTokenAccountResp } from '@raydium-io/raydium-s
 import { Connection, Keypair, clusterApiUrl } from '@solana/web3.js'
 import { TOKEN_PROGRAM_ID } from '@solana/spl-token'
 import bs58 from 'bs58'
-import { PRIVATE_KEY, RPC_ENDPOINT, RPC_WEBSOCKET_ENDPOINT } from './constants'
+import { PRIVATE_KEY, RPC_ENDPOINT, RPC_WEBSOCKET_ENDPOINT } from '../constants'
 
 export const owner: Keypair = Keypair.fromSecretKey(bs58.decode(PRIVATE_KEY))
 

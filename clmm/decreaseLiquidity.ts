@@ -34,8 +34,8 @@ export const decreaseLiquidity = async (poolId: string) => {
   if (!position) throw new Error(`user do not have position in pool: ${poolInfo.id}`)
 
   /** code below will get on chain realtime price to avoid slippage error, uncomment it if necessary */
-  // const rpcData = await raydium.clmm.getRpcClmmPoolInfo({ poolId: poolInfo.id })
-  // poolInfo.price = rpcData.currentPrice
+  const rpcData = await raydium.clmm.getRpcClmmPoolInfo({ poolId: poolInfo.id })
+  poolInfo.price = rpcData.currentPrice
   const { execute } = await raydium.clmm.decreaseLiquidity({
     poolInfo,
     poolKeys,
@@ -94,13 +94,18 @@ export const decreaseLiquidity = async (poolId: string) => {
   )
   vTx.sign([owner])
 
-  // console.log(await connection.simulateTransaction(vTx, { sigVerify: true }))
-  // const sig = await connection.sendRawTransaction(vTx.serialize(), { skipPreflight: true })
-  // await connection.confirmTransaction({
+  console.log(await connection.simulateTransaction(vTx, { sigVerify: true }))
+  const sig = await connection.sendRawTransaction(vTx.serialize(), { skipPreflight: true })
+  const status = await connection.getSignatureStatuses([sig]);
+  
+  // Deprecated call on solana
+  // const confirm = await connection.getsignaturestatuses({
   //   signature: sig,
   //   blockhash: blockhash.blockhash,
   //   lastValidBlockHeight: blockhash.lastValidBlockHeight
   // })
-  // console.log('withdraw liquidity from clmm position:', { txId: `https://solscan.io/tx/${sig}` })
+  // console.log('confirm :>> ', confirm);
+  console.log('sig :>> ', status);
+  console.log('withdraw liquidity from clmm position:', { txId: `https://solscan.io/tx/${sig}` })
   return vTx;
 }

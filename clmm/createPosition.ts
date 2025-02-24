@@ -3,7 +3,7 @@ import BN from 'bn.js'
 import { connection, init, owner, txVersion } from '../config'
 import Decimal from 'decimal.js'
 import { isValidClmm } from './utils'
-import { sendAndConfirmTransaction } from '@solana/web3.js'
+import { AddressLookupTableAccount, ComputeBudgetProgram, sendAndConfirmTransaction, TransactionMessage, VersionedTransaction } from '@solana/web3.js'
 
 export const createPosition = async (poolId: string, inputAmount: number) => {
   try {
@@ -21,7 +21,10 @@ export const createPosition = async (poolId: string, inputAmount: number) => {
       poolInfo = data.poolInfo
       poolKeys = data.poolKeys
     }
-    //   const inputAmount = 0.000001 // RAY amount
+
+    const rpcData = await raydium.clmm.getRpcClmmPoolInfo({ poolId: poolInfo.id })
+    poolInfo.price = rpcData.currentPrice
+
     const [startPrice, endPrice] = [0.000001, 100000]
 
     const { tick: lowerTick } = TickUtils.getPriceAndTick({
@@ -43,13 +46,13 @@ export const createPosition = async (poolId: string, inputAmount: number) => {
       inputA: true,
       tickUpper: Math.max(lowerTick, upperTick),
       tickLower: Math.min(lowerTick, upperTick),
-      amount: new BN(new Decimal(inputAmount || '0').mul(10 ** ( poolInfo.mintA.decimals)).toFixed(0)),
+      amount: new BN(new Decimal(inputAmount || '0').mul(10 ** (poolInfo.mintA.decimals)).toFixed(0)),
       add: true,
       amountHasFee: true,
       epochInfo: epochInfo,
     })
 
-    const { transaction, extInfo } = await raydium.clmm.openPositionFromBase({
+    const { transaction, extInfo, execute } = await raydium.clmm.openPositionFromBase({
       poolInfo,
       poolKeys,
       tickUpper: Math.max(lowerTick, upperTick),
@@ -66,11 +69,39 @@ export const createPosition = async (poolId: string, inputAmount: number) => {
         microLamports: 100000,
       },
     })
+
+    // const { txId, signedTx } = await execute({ sendAndConfirm: false })
+    // const swapALT = await Promise.all(
+    //   signedTx.message.addressTableLookups.map(async (lookup) => {
+    //     return new AddressLookupTableAccount({
+    //       key: lookup.accountKey,
+    //       state: AddressLookupTableAccount.deserialize(
+    //         await connection
+    //           .getAccountInfo(lookup.accountKey)
+    //           .then((res) => res!.data)
+    //       ),
+    //     });
+    //   })
+    // );
+    // const insts = TransactionMessage.decompile(signedTx.message, { addressLookupTableAccounts: swapALT }).instructions
+    // const blockhash = await connection.getLatestBlockhash()
+    // const vTx = new VersionedTransaction(
+    //   new TransactionMessage({
+    //     instructions: [
+    //       ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+    //       ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 100_000 }),
+    //       ...insts
+    //     ],
+    //     payerKey: owner.publicKey,
+    //     recentBlockhash: blockhash.blockhash
+    //   }).compileToV0Message(swapALT)
+    // )
+    // vTx.sign([owner])
     // const { txId, signedTx } = await execute({ sendAndConfirm: false });
-    // console.log(await connection.simulateTransaction(signedTx, {sigVerify: true}))
     // console.log(`Success transaction: https://solscan.io/tx/${txId}`)
     transaction.sign([owner])
     return transaction;
+    // return vTx;
 
   } catch (error) {
     console.log(error);
