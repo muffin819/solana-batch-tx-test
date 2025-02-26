@@ -51,5 +51,5 @@ import {
 
     // console.log(await connection.simulateTransaction(signedTxs, {sigVerify: true}))
     console.log('harvested all clmm rewards:', { txIds })
-    process.exit() // if you don't want to end up node execution, comment this line
+    process.exit() // if you don't want to end up node execution
   }
